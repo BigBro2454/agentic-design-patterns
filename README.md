@@ -1,5 +1,6 @@
 # Production Agentic Design Patterns
 
+[![CI Pipeline](https://github.com/BigBro2454/agentic-design-patterns/actions/workflows/ci.yml/badge.svg)](https://github.com/BigBro2454/agentic-design-patterns/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![Google Gemini 2.5 Flash](https://img.shields.io/badge/Gemini-2.5_Flash-8E75B2?style=flat&logo=googlegemini&logoColor=white)](https://aistudio.google.com/)
 [![LangGraph](https://img.shields.io/badge/LangGraph-Agent_Orchestration-FF6F00?style=flat)](https://langchain-ai.github.io/langgraph/)
@@ -298,9 +299,22 @@ python run_pattern.py routing
 python run_pattern.py reflection
 ```
 
-Alternatively, navigate into any pattern directory and run directly:
+### Headless Mock Execution & Validation Matrix (Offline / CI)
+Run individual patterns or the entire 21-pattern validation matrix headlessly without external API keys or token consumption:
 ```bash
-python patterns/10_mcp_model_context_protocol/run.py
+# Execute single pattern in headless mock mode:
+python run_pattern.py 01 --mock
+python run_pattern.py mcp --mock
+
+# Execute full 21-pattern test matrix with timing telemetry:
+python run_pattern.py --all --mock
+```
+
+### Automated Pytest Suite
+Run the comprehensive test matrix with semantic assertions across all 21 patterns:
+```bash
+# Run all unit tests and pattern matrix assertions:
+pytest tests/ -v
 ```
 
 ---
@@ -309,15 +323,23 @@ python patterns/10_mcp_model_context_protocol/run.py
 
 ```
 agentic-design-patterns/
+├── .github/
+│   └── workflows/
+│       └── ci.yml             # GitHub Actions CI matrix (Python 3.10, 3.11, 3.12)
 ├── .env.example               # Safe environment variable template
 ├── .gitignore                 # Zero-leak Git exclusion rules
 ├── LICENSE                    # MIT Open Source License
 ├── pyproject.toml             # Modern PEP 517/621 packaging metadata
 ├── README.md                  # L5 Systems Architecture & Design Document
 ├── requirements.txt           # Verified Python dependencies
-├── run_pattern.py             # Unified CLI runner & taxonomy inspector
+├── run_pattern.py             # Unified CLI runner, mock executor & validation matrix
 ├── shared/
-│   └── llm.py                 # Centralized Gemini & LangChain client factory
+│   ├── llm.py                 # Centralized Gemini & LangChain client factory
+│   └── mock_llm.py            # Deterministic headless MockChatModel for CI/testing
+├── tests/
+│   ├── __init__.py
+│   ├── test_mock_llm.py       # Unit tests for mock LLM & environment controls
+│   └── test_patterns_matrix.py # 21-pattern execution matrix & semantic test suite
 └── patterns/
     ├── 01_prompt_chaining/run.py
     ├── 02_routing/run.py

@@ -40,7 +40,7 @@ def list_patterns():
         print(f"{num:<4} {dirname:<35} {cat:<25} {desc}")
     print("=" * 95 + "\n")
 
-def run_pattern(key: str):
+def run_pattern(key: str, mock: bool = False):
     # Match by number or substring
     target = None
     key_clean = key.strip().lower().zfill(2) if key.strip().isdigit() else key.strip().lower()
@@ -59,27 +59,95 @@ def run_pattern(key: str):
         print(f"❌ Error: Script '{script_path}' does not exist.")
         sys.exit(1)
         
-    print(f"\n🚀 Executing Pattern [{target}]...\n")
+    mode_label = "[MOCK MODE]" if mock else "[LIVE GEMINI]"
+    print(f"\n🚀 Executing Pattern [{target}] {mode_label}...\n")
+    
+    env = os.environ.copy()
+    if mock:
+        env["MOCK_LLM"] = "true"
+        
     cmd = [sys.executable, script_path]
-    result = subprocess.run(cmd)
+    result = subprocess.run(cmd, env=env)
     sys.exit(result.returncode)
+
+def run_matrix(mock: bool = True):
+    """Executes the full 21-pattern test matrix and outputs an executive summary table."""
+    import time
+    
+    env = os.environ.copy()
+    if mock:
+        env["MOCK_LLM"] = "true"
+        
+    mode_str = "Headless Mock (Deterministic)" if mock else "Live API Integration"
+    print("\n" + "=" * 95)
+    print(f"🔬 RUNNING 21-PATTERN VALIDATION MATRIX ({mode_str})")
+    print("=" * 95)
+    print(f"{'#':<4} {'PATTERN DIRECTORY':<35} {'CATEGORY':<24} {'DURATION':<10} {'STATUS'}")
+    print("-" * 95)
+    
+    results = []
+    total_start = time.time()
+    
+    for num, (dirname, cat, desc) in sorted(PATTERNS.items()):
+        script_path = os.path.join("patterns", dirname, "run.py")
+        if not os.path.exists(script_path):
+            print(f"{num:<4} {dirname:<35} {cat:<24} {'-':<10} ❌ MISSING")
+            results.append((num, dirname, "MISSING", 0.0))
+            continue
+            
+        t0 = time.time()
+        proc = subprocess.run([sys.executable, script_path], env=env, capture_output=True, text=True)
+        elapsed = round(time.time() - t0, 2)
+        
+        if proc.returncode == 0:
+            status = "✅ PASS"
+            results.append((num, dirname, "PASS", elapsed))
+        else:
+            status = "❌ FAIL"
+            results.append((num, dirname, "FAIL", elapsed))
+            
+        print(f"{num:<4} {dirname:<35} {cat:<24} {f'{elapsed}s':<10} {status}")
+        
+    total_elapsed = round(time.time() - total_start, 2)
+    passed_count = sum(1 for _, _, s, _ in results if s == "PASS")
+    total_count = len(results)
+    
+    print("=" * 95)
+    print(f"📊 SUMMARY: {passed_count}/{total_count} PASSED ({round((passed_count/total_count)*100, 1)}%) in {total_elapsed}s")
+    print("=" * 95 + "\n")
+    
+    if passed_count != total_count:
+        sys.exit(1)
+    sys.exit(0)
 
 def main():
     parser = argparse.ArgumentParser(
-        description="CLI Runner for 21 Production Agentic Design Patterns",
+        description="CLI Runner & Validation Matrix for 21 Production Agentic Design Patterns",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Examples:\n  python run_pattern.py --list\n  python run_pattern.py 01\n  python run_pattern.py routing\n  python run_pattern.py mcp"
+        epilog=(
+            "Examples:\n"
+            "  python run_pattern.py --list\n"
+            "  python run_pattern.py 01 --mock\n"
+            "  python run_pattern.py routing\n"
+            "  python run_pattern.py --all --mock\n"
+        )
     )
     parser.add_argument("pattern", nargs="?", help="Pattern number (e.g. 01, 10) or keyword (e.g. mcp, routing)")
     parser.add_argument("--list", "-l", action="store_true", help="List all 21 patterns and categories")
+    parser.add_argument("--all", "--matrix", "-a", action="store_true", help="Run the full 21-pattern test matrix")
+    parser.add_argument("--mock", "-m", action="store_true", help="Run with headless deterministic mock LLM (offline / CI)")
     
     args = parser.parse_args()
-    if args.list or not args.pattern:
+    
+    if args.all:
+        run_matrix(mock=args.mock or os.environ.get("MOCK_LLM", "").lower() in ("true", "1", "yes"))
+    elif args.list or not args.pattern:
         list_patterns()
         if not args.pattern:
-            print("Tip: Run a specific pattern with: python run_pattern.py <pattern_number_or_name>\n")
+            print("Tip: Run a specific pattern: python run_pattern.py <pattern> [--mock]")
+            print("     Run the full test matrix: python run_pattern.py --all [--mock]\n")
     else:
-        run_pattern(args.pattern)
+        run_pattern(args.pattern, mock=args.mock or os.environ.get("MOCK_LLM", "").lower() in ("true", "1", "yes"))
 
 if __name__ == "__main__":
     main()
