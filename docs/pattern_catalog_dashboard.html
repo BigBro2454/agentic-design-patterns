@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agentic Design Patterns — Systems Architecture & Telemetry Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #0ea5e9;
+      --accent-glow: rgba(56, 189, 248, 0.15);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --purple: #a855f7;
+      --pink: #ec4899;
+      --tag-bg: #334155;
+    }
+
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent: #0284c7;
+      --accent-hover: #0369a1;
+      --accent-glow: rgba(2, 132, 199, 0.1);
+      --tag-bg: #f1f5f9;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.5;
+      padding: 24px;
+      transition: background-color 0.2s, color 0.2s;
+    }
+
+    header {
+      max-width: 1200px;
+      margin: 0 auto 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .title-group h1 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .title-group p {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .theme-toggle {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--accent);
+    }
+
+    /* KPI Stats Bar */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-top: 8px;
+    }
+
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .kpi-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    .kpi-val {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .kpi-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Controls Bar */
+    .controls {
+      max-width: 1200px;
+      margin: 0 auto 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .search-input {
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: var(--text-main);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+
+    .filter-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .pill-btn:hover {
+      color: var(--text-main);
+      border-color: var(--accent);
+    }
+
+    .pill-btn.active {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+
+    /* Pattern Grid */
+    .pattern-grid {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 20px;
+    }
+
+    .pattern-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 14px;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+      cursor: pointer;
+    }
+
+    .pattern-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.2);
+      border-color: var(--accent);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .card-id {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--accent);
+      background: var(--accent-glow);
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .badge-status {
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .card-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-top: 4px;
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 10px;
+      border-top: 1px solid var(--card-border);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .card-domain {
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 1000;
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal-content {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 650px;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      position: relative;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .modal-close:hover { color: var(--text-main); }
+
+    .modal-section-title {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    .code-box {
+      background: #090d16;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #38bdf8;
+      overflow-x: auto;
+    }
+
+    .tradeoff-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .tradeoff-box {
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 12px;
+    }
+
+    .tradeoff-box strong { color: var(--text-main); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="top-bar">
+      <div class="title-group">
+        <h1>⚡ Agentic Design Patterns Matrix</h1>
+        <p>Google L5 Systems Architecture & Empirical Telemetry Explorer (21 Production Patterns)</p>
+      </div>
+      <button class="theme-toggle" onclick="toggleTheme()">🌓 Toggle Theme</button>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-label">Total Patterns</span>
+        <span class="kpi-val">21</span>
+        <span class="kpi-sub">Across 7 Architectural Domains</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Pass Rate SLA</span>
+        <span class="kpi-val" style="color: var(--success);">100.0%</span>
+        <span class="kpi-sub">21/21 Headless Mock CI Pass</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Mean Latency</span>
+        <span class="kpi-val">459ms</span>
+        <span class="kpi-sub">Sub-second execution bounds</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">P95 Latency SLA</span>
+        <span class="kpi-val">594ms</span>
+        <span class="kpi-sub">Strict deterministic ceiling</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Cost per 1K Runs</span>
+        <span class="kpi-val" style="color: var(--success);">$1.18</span>
+        <span class="kpi-sub">Gemini 2.5 Flash enterprise economics</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="controls">
+    <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search pattern by name, category, or architecture keyword (e.g., routing, mcp, memory, reflection)..." oninput="filterPatterns()" />
+
+    <div class="filter-pills" id="domainFilter">
+      <button class="pill-btn active" onclick="setDomain('All')">All Domains (21)</button>
+      <button class="pill-btn" onclick="setDomain('Core Workflow')">Core Workflow (4)</button>
+      <button class="pill-btn" onclick="setDomain('Reasoning & Planning')">Reasoning & Planning (4)</button>
+      <button class="pill-btn" onclick="setDomain('Tooling & Environment')">Tooling & MCP (2)</button>
+      <button class="pill-btn" onclick="setDomain('Multi-Agent Orchestration')">Multi-Agent (2)</button>
+      <button class="pill-btn" onclick="setDomain('State & Memory')">State & Memory (1)</button>
+      <button class="pill-btn" onclick="setDomain('Self-Improvement')">Self-Improvement (2)</button>
+      <button class="pill-btn" onclick="setDomain('Robustness & Safety')">Robustness & Safety (3)</button>
+      <button class="pill-btn" onclick="setDomain('Observability')">Observability (1)</button>
+      <button class="pill-btn" onclick="setDomain('Context & Data')">Context & RAG (1)</button>
+      <button class="pill-btn" onclick="setDomain('Cost & Performance')">Cost Optimization (1)</button>
+    </div>
+  </section>
+
+  <main class="pattern-grid" id="patternGrid"></main>
+
+  <!-- Detail Modal -->
+  <div class="modal-backdrop" id="modalBackdrop" onclick="closeModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeModal()">×</button>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    const PATTERNS_DATA = [
+      {
+        id: "01",
+        name: "Prompt Chaining",
+        dir: "01_prompt_chaining",
+        category: "Core Workflow",
+        desc: "Sequential decomposition of complex reasoning tasks into discrete, validateable LLM steps.",
+        latency: "590ms",
+        tokens: "310",
+        cost: "$0.000078",
+        tradeoffA: "Step Isolation (Prevents compounding hallucination)",
+        tradeoffB: "Cumulative Latency (Linear execution time)",
+        command: "python run_pattern.py 01 --mock"
+      },
+      {
+        id: "02",
+        name: "Dynamic Routing",
+        dir: "02_routing",
+        category: "Core Workflow",
+        desc: "Dynamic intent classification directing user queries to specialized sub-agents or handlers.",
+        latency: "430ms",
+        tokens: "270",
+        cost: "$0.000054",
+        tradeoffA: "Domain Specificity (Specialized narrow prompts)",
+        tradeoffB: "Router Overhead (Pre-classification latency)",
+        command: "python run_pattern.py 02 --mock"
+      },
+      {
+        id: "03",
+        name: "Parallelization & Fanout",
+        dir: "03_parallelization",
+        category: "Core Workflow",
+        desc: "Concurrent multi-branch execution synthesized into a unified multi-perspective output.",
+        latency: "430ms",
+        tokens: "280",
+        cost: "$0.000056",
+        tradeoffA: "High Throughput (Parallel IO execution)",
+        tradeoffB: "Token Sprawl (Multiplied token budget)",
+        command: "python run_pattern.py 03 --mock"
+      },
+      {
+        id: "04",
+        name: "Reflection & Self-Correction",
+        dir: "04_reflection",
+        category: "Self-Improvement",
+        desc: "Iterative generator-evaluator loop with automated rubric scoring and bounded revision thresholds.",
+        latency: "420ms",
+        tokens: "290",
+        cost: "$0.000058",
+        tradeoffA: "Quality Convergence (Iterative error elimination)",
+        tradeoffB: "Circuit Breaker Need (Guard against infinite loops)",
+        command: "python run_pattern.py 04 --mock"
+      },
+      {
+        id: "05",
+        name: "Tool Use (ReAct Agent)",
+        dir: "05_tool_use",
+        category: "Tooling & Environment",
+        desc: "Schema-bound external function invocation with schema inspection and argument parsing.",
+        latency: "480ms",
+        tokens: "310",
+        cost: "$0.000062",
+        tradeoffA: "Deterministic Grounding (Real-world APIs/calculators)",
+        tradeoffB: "Context Window Cost (Tool schema footprint)",
+        command: "python run_pattern.py 05 --mock"
+      },
+      {
+        id: "06",
+        name: "Hierarchical Planning",
+        dir: "06_planning",
+        category: "Reasoning & Planning",
+        desc: "Multi-stage goal decomposition, sequential dependency ordering, and execution monitoring.",
+        latency: "440ms",
+        tokens: "280",
+        cost: "$0.000056",
+        tradeoffA: "Complex Goal Resolution (Structured execution graph)",
+        tradeoffB: "Replanning Overhead (Dynamic replanning latency)",
+        command: "python run_pattern.py 06 --mock"
+      },
+      {
+        id: "07",
+        name: "Multi-Agent Collaboration",
+        dir: "07_multi_agent",
+        category: "Multi-Agent Orchestration",
+        desc: "Hierarchical specialist team (Researcher -> Analyst -> Writer -> Editor) collaborating over shared state.",
+        latency: "420ms",
+        tokens: "290",
+        cost: "$0.000058",
+        tradeoffA: "Role Separation of Concerns",
+        tradeoffB: "Inter-Agent Protocol Overhead",
+        command: "python run_pattern.py 07 --mock"
+      },
+      {
+        id: "08",
+        name: "Multi-Tiered Memory",
+        dir: "08_memory_management",
+        category: "State & Memory",
+        desc: "Rolling short-term buffer paired with semantic entity extraction and persistent key-value store.",
+        latency: "460ms",
+        tokens: "300",
+        cost: "$0.000060",
+        tradeoffA: "Continuous Persona & Preference Tracking",
+        tradeoffB: "Memory Compaction / Pruning Need",
+        command: "python run_pattern.py 08 --mock"
+      },
+      {
+        id: "09",
+        name: "Learning & Adaptation",
+        dir: "09_learning_and_adaptation",
+        category: "Self-Improvement",
+        desc: "Dynamic behavioral steering and guideline adjustment driven by accumulated user feedback signals.",
+        latency: "430ms",
+        tokens: "280",
+        cost: "$0.000056",
+        tradeoffA: "Personalized Adaptation Without Fine-Tuning",
+        tradeoffB: "Prompt Drift / Instruction Bloat",
+        command: "python run_pattern.py 09 --mock"
+      },
+      {
+        id: "10",
+        name: "Model Context Protocol (MCP)",
+        dir: "10_mcp_model_context_protocol",
+        category: "Tooling & Environment",
+        desc: "Standardized tool discovery, schema inspection, and agent invocation over MCP stdio protocol.",
+        latency: "700ms",
+        tokens: "350",
+        cost: "$0.000070",
+        tradeoffA: "Universal Interoperability Across Host Systems",
+        tradeoffB: "Subprocess Transport Serialization Latency",
+        command: "python run_pattern.py 10 --mock"
+      },
+      {
+        id: "11",
+        name: "Goal Setting & Monitoring",
+        dir: "11_goal_setting_and_monitoring",
+        category: "Reasoning & Planning",
+        desc: "Autonomous goal tracking, progress quantification, milestone completion, and state transitions.",
+        latency: "430ms",
+        tokens: "280",
+        cost: "$0.000056",
+        tradeoffA: "Autonomous Mission Convergence",
+        tradeoffB: "Goal Creep Prevention Constraints",
+        command: "python run_pattern.py 11 --mock"
+      },
+      {
+        id: "12",
+        name: "Exception Handling & Recovery",
+        dir: "12_exception_handling_and_recovery",
+        category: "Robustness & Safety",
+        desc: "Circuit breaking, exponential backoff, and LLM-driven fallback self-healing against upstream failures.",
+        latency: "430ms",
+        tokens: "280",
+        cost: "$0.000056",
+        tradeoffA: "Zero-Downtime High Availability",
+        tradeoffB: "Fallback Model Quality Degradation",
+        command: "python run_pattern.py 12 --mock"
+      },
+      {
+        id: "13",
+        name: "Human-in-the-Loop (HITL)",
+        dir: "13_human_in_the_loop",
+        category: "Robustness & Safety",
+        desc: "Deterministic escalation and confirmation gating for high-blast-radius financial or operational actions.",
+        latency: "430ms",
+        tokens: "280",
+        cost: "$0.000056",
+        tradeoffA: "Zero-Tolerance Operational Safety",
+        tradeoffB: "Asynchronous Pauses Waiting for Human Input",
+        command: "python run_pattern.py 13 --mock"
+      },
+      {
+        id: "14",
+        name: "Knowledge Retrieval (RAG)",
+        dir: "14_knowledge_retrieval_rag",
+        category: "Context & Data",
+        desc: "Context augmentation via semantic vector similarity lookup and grounded citation generation.",
+        latency: "420ms",
+        tokens: "270",
+        cost: "$0.000054",
+        tradeoffA: "Hallucination Reduction via Grounding",
+        tradeoffB: "Embedding Latency & Chunk Context Loss",
+        command: "python run_pattern.py 14 --mock"
+      },
+      {
+        id: "15",
+        name: "Inter-Agent Communication",
+        dir: "15_inter_agent_communication",
+        category: "Multi-Agent Orchestration",
+        desc: "Structured schema messaging contracts and peer-to-peer data passing across isolated runtimes.",
+        latency: "430ms",
+        tokens: "280",
+        cost: "$0.000056",
+        tradeoffA: "Composable Modular Architecture",
+        tradeoffB: "Message Queue Serialization Overhead",
+        command: "python run_pattern.py 15 --mock"
+      },
+      {
+        id: "16",
+        name: "Resource-Aware Optimization",
+        dir: "16_resource_aware_optimization",
+        category: "Cost & Performance",
+        desc: "Dynamic query complexity triage routing simple tasks to Flash-Lite and complex reasoning to Pro.",
+        latency: "430ms",
+        tokens: "280",
+        cost: "$0.000056",
+        tradeoffA: "Up to 80% Infrastructure Cost Reduction",
+        tradeoffB: "Classification Latency & Threshold Tuning",
+        command: "python run_pattern.py 16 --mock"
+      },
+      {
+        id: "17",
+        name: "Advanced Reasoning (CoT)",
+        dir: "17_reasoning_techniques",
+        category: "Reasoning & Planning",
+        desc: "Chain-of-Thought and Tree-of-Thought step-by-step reasoning puzzles and logic verification.",
+        latency: "460ms",
+        tokens: "300",
+        cost: "$0.000060",
+        tradeoffA: "High Mathematical / Logic Accuracy",
+        tradeoffB: "Higher Output Token Length",
+        command: "python run_pattern.py 17 --mock"
+      },
+      {
+        id: "18",
+        name: "Guardrails & Safety",
+        dir: "18_guardrails_and_safety",
+        category: "Robustness & Safety",
+        desc: "Pre-execution input sanitization, PII masking, adversarial prompt injection interception, and policy audit.",
+        latency: "430ms",
+        tokens: "280",
+        cost: "$0.000056",
+        tradeoffA: "Enterprise Compliance & Threat Neutralization",
+        tradeoffB: "False Positive Filter Interceptions",
+        command: "python run_pattern.py 18 --mock"
+      },
+      {
+        id: "19",
+        name: "Evaluation & Monitoring",
+        dir: "19_evaluation_and_monitoring",
+        category: "Observability",
+        desc: "Automated LLM-as-a-Judge quantitative evaluation testing response quality, tone, and groundedness.",
+        latency: "460ms",
+        tokens: "300",
+        cost: "$0.000060",
+        tradeoffA: "Continuous Automated CI Quality Gate",
+        tradeoffB: "Judge Model Alignment & Cost",
+        command: "python run_pattern.py 19 --mock"
+      },
+      {
+        id: "20",
+        name: "Prioritization & Queue Triage",
+        dir: "20_prioritization",
+        category: "Core Workflow",
+        desc: "Algorithmic impact-urgency scoring and dynamic priority queue reordering of concurrent tasks.",
+        latency: "490ms",
+        tokens: "310",
+        cost: "$0.000062",
+        tradeoffA: "Optimal Resource Allocation Under Load",
+        tradeoffB: "Starvation Risks for Low-Priority Tasks",
+        command: "python run_pattern.py 20 --mock"
+      },
+      {
+        id: "21",
+        name: "Exploration & Discovery",
+        dir: "21_exploration_and_discovery",
+        category: "Reasoning & Planning",
+        desc: "Autonomous hypothesis generation, open-ended search experimentation, and novel insight clustering.",
+        latency: "420ms",
+        tokens: "270",
+        cost: "$0.000054",
+        tradeoffA: "Creative 0→1 Problem Solving",
+        tradeoffB: "Bounded Search Ceilings Required",
+        command: "python run_pattern.py 21 --mock"
+      }
+    ];
+
+    let currentDomain = "All";
+
+    function renderGrid(patterns) {
+      const grid = document.getElementById("patternGrid");
+      grid.innerHTML = "";
+
+      if (patterns.length === 0) {
+        grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;">No patterns matched your search criteria.</p>`;
+        return;
+      }
+
+      patterns.forEach(p => {
+        const card = document.createElement("div");
+        card.className = "pattern-card";
+        card.onclick = () => openModal(p);
+        card.innerHTML = `
+          <div>
+            <div class="card-header">
+              <span class="card-id">PATTERN ${p.id}</span>
+              <span class="badge-status">PASS &middot; ${p.latency}</span>
+            </div>
+            <h3 class="card-title">${p.name}</h3>
+            <p class="card-desc">${p.desc}</p>
+          </div>
+          <div class="card-meta">
+            <span class="card-domain">${p.category}</span>
+            <span>${p.cost}</span>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function filterPatterns() {
+      const query = document.getElementById("searchInput").value.toLowerCase().trim();
+      const filtered = PATTERNS_DATA.filter(p => {
+        const matchesDomain = (currentDomain === "All") || (p.category === currentDomain);
+        const matchesQuery = !query ||
+          p.name.toLowerCase().includes(query) ||
+          p.desc.toLowerCase().includes(query) ||
+          p.category.toLowerCase().includes(query) ||
+          p.dir.toLowerCase().includes(query);
+        return matchesDomain && matchesQuery;
+      });
+      renderGrid(filtered);
+    }
+
+    function setDomain(domain) {
+      currentDomain = domain;
+      document.querySelectorAll(".pill-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.innerText.includes(domain));
+      });
+      filterPatterns();
+    }
+
+    function openModal(pattern) {
+      const modalBody = document.getElementById("modalBody");
+      modalBody.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span class="card-id">PATTERN ${pattern.id}</span>
+          <span class="badge-status">100% CI PASS &middot; ${pattern.latency}</span>
+        </div>
+        <h2 style="font-size: 22px; font-weight: 800;">${pattern.name}</h2>
+        <p style="color: var(--text-muted); font-size: 14px;">${pattern.desc}</p>
+
+        <div>
+          <div class="modal-section-title">Directory & Quickstart</div>
+          <div class="code-box">patterns/${pattern.dir}/run.py</div>
+          <div class="code-box" style="margin-top: 6px;">${pattern.command}</div>
+        </div>
+
+        <div>
+          <div class="modal-section-title">Google L5 Systems & Architectural Trade-offs</div>
+          <div class="tradeoff-grid">
+            <div class="tradeoff-box">
+              <span style="color: var(--success); font-weight: bold;">+ Advantage</span><br>
+              ${pattern.tradeoffA}
+            </div>
+            <div class="tradeoff-box">
+              <span style="color: var(--warning); font-weight: bold;">- Operational Trade-off</span><br>
+              ${pattern.tradeoffB}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="modal-section-title">Telemetry & Token Economics (Gemini 2.5 Flash)</div>
+          <div class="tradeoff-grid">
+            <div class="tradeoff-box">
+              <strong>Latency:</strong> ${pattern.latency}<br>
+              <strong>Est. Tokens:</strong> ${pattern.tokens}
+            </div>
+            <div class="tradeoff-box">
+              <strong>Est. Cost / Run:</strong> ${pattern.cost}<br>
+              <strong>1K Projected:</strong> $${(parseFloat(pattern.cost.replace('$', '')) * 1000).toFixed(4)}
+            </div>
+          </div>
+        </div>
+      `;
+      document.getElementById("modalBackdrop").classList.add("open");
+    }
+
+    function closeModal(e) {
+      if (!e || e.target.id === "modalBackdrop" || e.target.classList.contains("modal-close")) {
+        document.getElementById("modalBackdrop").classList.remove("open");
+      }
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute("data-theme");
+      document.documentElement.setAttribute("data-theme", current === "light" ? "dark" : "light");
+    }
+
+    // Initialize
+    renderGrid(PATTERNS_DATA);
+  </script>
+</body>
+</html>
