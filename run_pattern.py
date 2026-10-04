@@ -70,52 +70,77 @@ def run_pattern(key: str, mock: bool = False):
     result = subprocess.run(cmd, env=env)
     sys.exit(result.returncode)
 
-def run_matrix(mock: bool = True):
-    """Executes the full 21-pattern test matrix and outputs an executive summary table."""
+def run_matrix(mock: bool = True, profile: bool = False, export_dir: str = None):
+    """Executes the full 21-pattern test matrix and outputs an executive summary table and telemetry."""
     import time
-    
+    from shared.telemetry import PatternTelemetryTracker
+
     env = os.environ.copy()
     if mock:
         env["MOCK_LLM"] = "true"
-        
+
+    tracker = PatternTelemetryTracker(mode="mock" if mock else "live")
+    tracker.start_session()
+
     mode_str = "Headless Mock (Deterministic)" if mock else "Live API Integration"
     print("\n" + "=" * 95)
     print(f"🔬 RUNNING 21-PATTERN VALIDATION MATRIX ({mode_str})")
     print("=" * 95)
     print(f"{'#':<4} {'PATTERN DIRECTORY':<35} {'CATEGORY':<24} {'DURATION':<10} {'STATUS'}")
     print("-" * 95)
-    
+
     results = []
     total_start = time.time()
-    
+
     for num, (dirname, cat, desc) in sorted(PATTERNS.items()):
         script_path = os.path.join("patterns", dirname, "run.py")
         if not os.path.exists(script_path):
             print(f"{num:<4} {dirname:<35} {cat:<24} {'-':<10} ❌ MISSING")
             results.append((num, dirname, "MISSING", 0.0))
+            tracker.record_run(num, dirname, cat, 0.0, False, error="Missing script")
             continue
-            
+
         t0 = time.time()
         proc = subprocess.run([sys.executable, script_path], env=env, capture_output=True, text=True)
-        elapsed = round(time.time() - t0, 2)
-        
-        if proc.returncode == 0:
-            status = "✅ PASS"
-            results.append((num, dirname, "PASS", elapsed))
-        else:
-            status = "❌ FAIL"
-            results.append((num, dirname, "FAIL", elapsed))
-            
-        print(f"{num:<4} {dirname:<35} {cat:<24} {f'{elapsed}s':<10} {status}")
-        
+        elapsed = round(time.time() - t0, 3)
+
+        success = proc.returncode == 0
+        status = "✅ PASS" if success else "❌ FAIL"
+        results.append((num, dirname, "PASS" if success else "FAIL", elapsed))
+
+        tracker.record_run(
+            pattern_id=num,
+            pattern_name=dirname,
+            category=cat,
+            duration_sec=elapsed,
+            success=success,
+            output_text=proc.stdout or "",
+            error=proc.stderr if not success else None,
+        )
+
+        print(f"{num:<4} {dirname:<35} {cat:<24} {f'{elapsed:.2f}s':<10} {status}")
+
     total_elapsed = round(time.time() - total_start, 2)
     passed_count = sum(1 for _, _, s, _ in results if s == "PASS")
     total_count = len(results)
-    
+
+    summary = tracker.compute_summary()
     print("=" * 95)
-    print(f"📊 SUMMARY: {passed_count}/{total_count} PASSED ({round((passed_count/total_count)*100, 1)}%) in {total_elapsed}s")
+    print(f"📊 SUMMARY: {passed_count}/{total_count} PASSED ({summary.pass_rate_pct}%) in {total_elapsed}s")
+    if profile or export_dir:
+        print(f"⚡ TELEMETRY: Mean Latency: {summary.avg_latency_ms}ms | P95: {summary.p95_latency_ms}ms | Est. Cost: ${summary.total_cost_usd:.6f}")
+        print(f"💰 PROJECTED: ${summary.projected_cost_per_1k_runs:.4f} per 1,000 full matrix runs on Gemini 2.5 Flash")
     print("=" * 95 + "\n")
-    
+
+    if export_dir:
+        out_dir = Path(export_dir)
+        json_file = out_dir / "pattern_telemetry_matrix.json"
+        md_file = out_dir / "pattern_telemetry_matrix.md"
+        tracker.export_json(str(json_file))
+        tracker.export_markdown(str(md_file))
+        print(f"💾 Telemetry JSON exported to: {json_file}")
+        print(f"📄 Telemetry Markdown report exported to: {md_file}\n")
+
     if passed_count != total_count:
         sys.exit(1)
     sys.exit(0)
@@ -129,25 +154,30 @@ def main():
             "  python run_pattern.py --list\n"
             "  python run_pattern.py 01 --mock\n"
             "  python run_pattern.py routing\n"
-            "  python run_pattern.py --all --mock\n"
+            "  python run_pattern.py --all --mock --profile\n"
+            "  python run_pattern.py --all --mock --export-telemetry telemetry/\n"
         )
     )
     parser.add_argument("pattern", nargs="?", help="Pattern number (e.g. 01, 10) or keyword (e.g. mcp, routing)")
     parser.add_argument("--list", "-l", action="store_true", help="List all 21 patterns and categories")
     parser.add_argument("--all", "--matrix", "-a", action="store_true", help="Run the full 21-pattern test matrix")
     parser.add_argument("--mock", "-m", action="store_true", help="Run with headless deterministic mock LLM (offline / CI)")
-    
+    parser.add_argument("--profile", "-p", action="store_true", help="Profile latency, token consumption and costs across matrix")
+    parser.add_argument("--export-telemetry", "-e", metavar="DIR", help="Directory to export structured JSON and Markdown telemetry reports")
+
     args = parser.parse_args()
-    
+
     if args.all:
-        run_matrix(mock=args.mock or os.environ.get("MOCK_LLM", "").lower() in ("true", "1", "yes"))
+        is_mock = args.mock or os.environ.get("MOCK_LLM", "").lower() in ("true", "1", "yes")
+        run_matrix(mock=is_mock, profile=args.profile or bool(args.export_telemetry), export_dir=args.export_telemetry)
     elif args.list or not args.pattern:
         list_patterns()
         if not args.pattern:
             print("Tip: Run a specific pattern: python run_pattern.py <pattern> [--mock]")
-            print("     Run the full test matrix: python run_pattern.py --all [--mock]\n")
+            print("     Run the full test matrix: python run_pattern.py --all [--mock] [--profile]\n")
     else:
         run_pattern(args.pattern, mock=args.mock or os.environ.get("MOCK_LLM", "").lower() in ("true", "1", "yes"))
 
 if __name__ == "__main__":
+    from pathlib import Path
     main()

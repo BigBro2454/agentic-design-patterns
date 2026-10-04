@@ -308,13 +308,22 @@ python run_pattern.py mcp --mock
 
 # Execute full 21-pattern test matrix with timing telemetry:
 python run_pattern.py --all --mock
+
+# Profile latency, token economics, and export structured benchmark scorecards:
+python run_pattern.py --all --mock --profile --export-telemetry telemetry/
 ```
 
 ### Automated Pytest Suite
 Run the comprehensive test matrix with semantic assertions across all 21 patterns:
 ```bash
-# Run all unit tests and pattern matrix assertions:
+# Run all unit tests, pattern matrix assertions, and telemetry profiler tests:
 pytest tests/ -v
+```
+
+### Interactive Architecture & Telemetry Dashboard
+Open the standalone interactive visualizer in any web browser to explore pattern topologies, empirical latency distributions, and systems trade-offs:
+```bash
+open docs/pattern_catalog_dashboard.html
 ```
 
 ---
@@ -333,13 +342,20 @@ agentic-design-patterns/
 ├── README.md                  # L5 Systems Architecture & Design Document
 ├── requirements.txt           # Verified Python dependencies
 ├── run_pattern.py             # Unified CLI runner, mock executor & validation matrix
+├── docs/
+│   └── pattern_catalog_dashboard.html # Interactive visualizer & telemetry explorer
+├── telemetry/
+│   ├── pattern_telemetry_matrix.json  # Exported machine-readable telemetry
+│   └── pattern_telemetry_matrix.md    # Executive benchmark scorecard
 ├── shared/
 │   ├── llm.py                 # Centralized Gemini & LangChain client factory
-│   └── mock_llm.py            # Deterministic headless MockChatModel for CI/testing
+│   ├── mock_llm.py            # Deterministic headless MockChatModel for CI/testing
+│   └── telemetry.py           # PatternTelemetryTracker & token economics modeler
 ├── tests/
 │   ├── __init__.py
 │   ├── test_mock_llm.py       # Unit tests for mock LLM & environment controls
-│   └── test_patterns_matrix.py # 21-pattern execution matrix & semantic test suite
+│   ├── test_patterns_matrix.py # 21-pattern execution matrix & semantic test suite
+│   └── test_telemetry.py      # Unit tests for telemetry profiler & pricing formulas
 └── patterns/
     ├── 01_prompt_chaining/run.py
     ├── 02_routing/run.py
