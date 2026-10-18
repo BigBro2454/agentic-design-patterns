@@ -1,0 +1,119 @@
+{
+  "token_volume_per_run": {
+    "total_input": 8440,
+    "total_output": 3690,
+    "total_cacheable": 4220,
+    "total_tokens": 12130
+  },
+  "models": {
+    "gemini-2.5-flash": {
+      "name": "Gemini 2.5 Flash (Vertex AI)",
+      "provider": "Google Cloud",
+      "cost_per_run_usd": 0.00174,
+      "cost_per_run_cached_usd": 0.001582,
+      "volume_costs": {
+        "10000": 17.4,
+        "100000": 174.0,
+        "500000": 870.0,
+        "1000000": 1740.0
+      },
+      "volume_costs_cached": {
+        "10000": 15.82,
+        "100000": 158.17,
+        "500000": 790.87,
+        "1000000": 1581.75
+      }
+    },
+    "gemini-2.5-flash-lite": {
+      "name": "Gemini 2.5 Flash-Lite (Vertex AI)",
+      "provider": "Google Cloud",
+      "cost_per_run_usd": 0.00087,
+      "cost_per_run_cached_usd": 0.000791,
+      "volume_costs": {
+        "10000": 8.7,
+        "100000": 87.0,
+        "500000": 435.0,
+        "1000000": 870.0
+      },
+      "volume_costs_cached": {
+        "10000": 7.91,
+        "100000": 79.09,
+        "500000": 395.44,
+        "1000000": 790.87
+      }
+    },
+    "claude-3-5-sonnet": {
+      "name": "Claude 3.5 Sonnet",
+      "provider": "Anthropic",
+      "cost_per_run_usd": 0.08067,
+      "cost_per_run_cached_usd": 0.069276,
+      "volume_costs": {
+        "10000": 806.7,
+        "100000": 8067.0,
+        "500000": 40335.0,
+        "1000000": 80670.0
+      },
+      "volume_costs_cached": {
+        "10000": 692.76,
+        "100000": 6927.6,
+        "500000": 34638.0,
+        "1000000": 69276.0
+      }
+    },
+    "gpt-4o": {
+      "name": "GPT-4o",
+      "provider": "OpenAI",
+      "cost_per_run_usd": 0.058,
+      "cost_per_run_cached_usd": 0.052725,
+      "volume_costs": {
+        "10000": 580.0,
+        "100000": 5800.0,
+        "500000": 29000.0,
+        "1000000": 58000.0
+      },
+      "volume_costs_cached": {
+        "10000": 527.25,
+        "100000": 5272.5,
+        "500000": 26362.5,
+        "1000000": 52725.0
+      }
+    }
+  },
+  "savings_vs_gpt4o": {
+    "10000": {
+      "dollar_savings": 564.18,
+      "percent_reduction": 97.3
+    },
+    "100000": {
+      "dollar_savings": 5641.83,
+      "percent_reduction": 97.3
+    },
+    "500000": {
+      "dollar_savings": 28209.13,
+      "percent_reduction": 97.3
+    },
+    "1000000": {
+      "dollar_savings": 56418.25,
+      "percent_reduction": 97.3
+    }
+  },
+  "savings_vs_claude": {
+    "10000": {
+      "dollar_savings": 790.88,
+      "percent_reduction": 98.0
+    },
+    "100000": {
+      "dollar_savings": 7908.83,
+      "percent_reduction": 98.0
+    },
+    "500000": {
+      "dollar_savings": 39544.13,
+      "percent_reduction": 98.0
+    },
+    "1000000": {
+      "dollar_savings": 79088.25,
+      "percent_reduction": 98.0
+    }
+  },
+  "timestamp": "2026-10-18T13:48:48Z"
+}
